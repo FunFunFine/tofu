@@ -1,12 +1,13 @@
 package tofu.examples.context.server
 
-import tofu.MonadThrow
+import tofu.{HasContext, MonadThrow}
 import cats.Monad
 import tofu.syntax.monadic._
 import cats.syntax.applicativeError._
 import tofu.syntax.foption._
 import tofu.concurrent.MakeAtom
 import tofu.examples.context.server.model.Recipe
+import tofu.logging.ServiceLogging
 
 trait RecipeRepository[F[_]] {
   def get(id: Recipe.Id): F[Recipe]
@@ -14,6 +15,7 @@ trait RecipeRepository[F[_]] {
 }
 
 object RecipeRepository {
+
   def make[I[_]: Monad, F[_]: MonadThrow](implicit
       makeAtom: MakeAtom[I, F]
   ): I[RecipeRepository[F]] = for {

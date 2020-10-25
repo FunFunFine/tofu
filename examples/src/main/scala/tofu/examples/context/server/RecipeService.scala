@@ -5,7 +5,7 @@ import tofu.syntax.monadic._
 import tofu.syntax.foption._
 import cats.syntax.option._
 import cats.syntax.monadError._
-import tofu.examples.context.server.model.Recipe
+import tofu.examples.context.server.model.{Recipe, Trace}
 
 trait RecipeService[F[_]] {
   def addRecipe(recipe: Recipe): F[Option[String]]
@@ -15,7 +15,7 @@ trait RecipeService[F[_]] {
 object RecipeService {
   def make[F[_]: MonadThrow](
       recipeValidate: RecipeValidate[F],
-      recipeRepository: RecipeRepository[F]
+      recipeRepository: RecipeRepository[F],
   ): RecipeService[F] =
     new RecipeService[F] {
       override def addRecipe(recipe: Recipe): F[Option[String]] =

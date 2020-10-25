@@ -251,7 +251,7 @@ lazy val commonModules =
   Seq(observable, opticsInterop, logging, enums, config, zioInterop, fs2Interop, doobie)
 
 lazy val allModuleRefs = (coreModules ++ commonModules).map(x => x: ProjectReference)
-lazy val allModuleDeps = (coreModules ++ commonModules).map(x => x: ClasspathDep[ProjectReference])
+lazy val allModuleDeps = (coreModules ++ commonModules ++ Seq(examples)).map(x => x: ClasspathDep[ProjectReference])
 
 lazy val examples  = project
   .in(file("examples"))
