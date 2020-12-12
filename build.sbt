@@ -1,7 +1,11 @@
 import Publish._, Dependencies._
 import com.typesafe.sbt.SbtGit.git
 
-val libVersion = "0.7.1"
+moduleName := "tofu"
+
+val libVersion = "0.8.0"
+
+val scalaV = "2.13.3"
 
 lazy val setMinorVersion = minorVersion := {
   CrossVersion.partialVersion(scalaVersion.value) match {
@@ -11,48 +15,34 @@ lazy val setMinorVersion = minorVersion := {
 }
 
 lazy val setModuleName = moduleName := { s"tofu-${(publishName or name).value}" }
-lazy val experimental  = scalacOptions ++= { if (scalaVersion.value < "2.12") Seq("-Xexperimental") else Nil }
-
-val macros = Keys.libraryDependencies ++= {
-  minorVersion.value match {
-    case 13 => Seq(scalaOrganization.value % "scala-reflect" % scalaVersion.value)
-    case 12 =>
-      Seq(
-        compilerPlugin(macroParadise),
-        scalaOrganization.value % "scala-reflect" % scalaVersion.value
-      )
-  }
-}
 
 lazy val defaultSettings = Seq(
-  scalaVersion := "2.13.1",
+  scalaVersion := scalaV,
   setMinorVersion,
   setModuleName,
-  experimental,
   defaultScalacOptions,
+  versionSpecificScalacOptions,
   libraryDependencies ++= Seq(
     compilerPlugin(kindProjector),
     compilerPlugin(betterMonadicFor),
     compilerPlugin(silencerPlugin),
     silencerLib,
-    scalatest
+    scalatest,
+    collectionCompat,
+    scalaOrganization.value % "scala-reflect" % scalaVersion.value % Provided
   )
-) ++ publishSettings ++ scala213Options ++ simulacrumOptions
-
-moduleName := "tofu"
+) ++ macros ++ simulacrumOptions ++ publishSettings
 
 lazy val higherKindCore = project settings (
   defaultSettings,
   publishName := "core-higher-kind",
   libraryDependencies ++= Seq(catsCore, catsFree, catsTagless),
-  macros,
 )
 
 lazy val core = project dependsOn (opticsCore, higherKindCore) settings (
   defaultSettings,
   publishName := "core",
   libraryDependencies ++= Seq(catsCore, catsEffect, catsTagless, derevo, magnolia),
-  macros,
 )
 
 lazy val memo = project
@@ -60,7 +50,6 @@ lazy val memo = project
   .settings(
     defaultSettings,
     libraryDependencies ++= Seq(catsCore, catsEffect),
-    macros
   )
 
 lazy val loggingStr = project
@@ -80,9 +69,8 @@ lazy val loggingStr = project
       derevo,
       catsTagless
     ),
-    macros
   )
-  .dependsOn(core, data)
+  .dependsOn(core, concurrent, data)
 
 lazy val loggingDer = project
   .in(file("logging/derivation"))
@@ -90,7 +78,6 @@ lazy val loggingDer = project
   .settings(
     defaultSettings,
     libraryDependencies ++= Seq(derevo, magnolia),
-    macros,
     publishName := "logging-derivation"
   )
 
@@ -99,7 +86,6 @@ lazy val loggingLayout = project
   .settings(
     defaultSettings,
     libraryDependencies ++= Seq(catsCore, catsEffect, logback, slf4j),
-    macros,
     publishName := "logging-layout"
   )
   .dependsOn(loggingStr)
@@ -113,9 +99,27 @@ lazy val loggingUtil = project
   )
   .dependsOn(loggingStr, concurrent)
 
+lazy val loggingShapeless = project
+  .in(file("logging/interop/shapeless"))
+  .settings(
+    defaultSettings,
+    publishName := "logging-shapeless",
+    libraryDependencies += shapeless
+  )
+  .dependsOn(loggingStr)
+
+lazy val loggingRefined = project
+  .in(file("logging/interop/refined"))
+  .settings(
+    defaultSettings,
+    publishName := "logging-refined",
+    libraryDependencies += refined
+  )
+  .dependsOn(loggingStr)
+
 lazy val logging = project
-  .dependsOn(loggingStr, loggingDer, loggingLayout, loggingUtil)
-  .aggregate(loggingStr, loggingDer, loggingLayout, loggingUtil)
+  .dependsOn(loggingStr, loggingDer, loggingLayout, loggingUtil, loggingShapeless, loggingRefined)
+  .aggregate(loggingStr, loggingDer, loggingLayout, loggingUtil, loggingShapeless, loggingRefined)
   .settings(defaultSettings)
 
 lazy val env = project
@@ -129,16 +133,14 @@ lazy val observable = project.settings(
 )
 
 lazy val concurrent =
-  project dependsOn core settings (
+  project dependsOn (core, data) settings (
     defaultSettings,
     libraryDependencies ++= Seq(catsEffect, catsTagless),
-    macros,
-)
+  )
 
 lazy val config = project dependsOn (core, data, opticsCore, concurrent) settings (
   defaultSettings,
   libraryDependencies ++= Seq(typesafeConfig, magnolia, derevo),
-  macros,
 )
 
 lazy val opticsCore = project
@@ -148,6 +150,7 @@ lazy val opticsCore = project
     libraryDependencies ++= Seq(catsCore, alleycats),
     publishName := "optics-core"
   )
+  .dependsOn(higherKindCore)
 
 lazy val opticsInterop = project
   .in(file("optics/interop"))
@@ -159,11 +162,13 @@ lazy val opticsMacro = project
   .dependsOn(opticsCore)
   .settings(
     defaultSettings,
-    scalacOptions --= Seq(
-      "-Ywarn-unused:params",
-      "-Ywarn-unused:patvars"
-    ),
-    macros,
+    scalacOptions ~= { opts =>
+      val suppressed = List(
+        "unused:params",
+        "unused:patvars"
+      )
+      opts.filterNot(opt => suppressed.exists(opt.contains))
+    },
     publishName := "optics-macro"
   )
 
@@ -184,7 +189,6 @@ lazy val derivation =
     .settings(
       defaultSettings,
       libraryDependencies ++= Seq(magnolia, derevo, catsTagless),
-      macros,
       publishName := "derivation",
     )
     .dependsOn(data)
@@ -198,8 +202,12 @@ lazy val zioCore =
 lazy val zioLogging =
   project
     .in(file("zio/logging"))
-    .settings(defaultSettings, libraryDependencies ++= List(zio, slf4j), publishName := "zio-logging")
-    .dependsOn(loggingStr)
+    .settings(
+      defaultSettings,
+      libraryDependencies ++= List(zio, zioCats, slf4j, logback % Test),
+      publishName := "zio-logging"
+    )
+    .dependsOn(loggingStr, loggingDer % "test")
 
 lazy val zioInterop = project
   .in(file("zio"))
@@ -217,12 +225,29 @@ lazy val fs2Interop = project
     libraryDependencies += fs2,
     defaultSettings
   )
-  .dependsOn(concurrent)
+  .dependsOn(concurrent, streams)
 
-lazy val coreModules = Seq(higherKindCore, core, memo, env, concurrent, opticsCore, data)
+lazy val doobie  = project
+  .in(file("doobie"))
+  .settings(
+    libraryDependencies ++= List(doobieCore, derevo, monix % Test),
+    defaultSettings
+  )
+  .dependsOn(core, derivation, env % Test, zioInterop % Test)
+
+lazy val streams = project
+  .in(file("streams"))
+  .settings(
+    libraryDependencies ++= List(fs2 % Test),
+    defaultSettings
+  )
+  .dependsOn(core)
+
+lazy val coreModules =
+  Seq(higherKindCore, core, opticsMacro, memo, derivation, env, concurrent, opticsCore, data, streams)
 
 lazy val commonModules =
-  Seq(observable, opticsInterop, opticsMacro, logging, enums, config, derivation, zioInterop, fs2Interop)
+  Seq(observable, opticsInterop, logging, enums, config, zioInterop, fs2Interop, doobie)
 
 lazy val allModuleRefs = (coreModules ++ commonModules).map(x => x: ProjectReference)
 lazy val allModuleDeps = (coreModules ++ commonModules).map(x => x: ClasspathDep[ProjectReference])
@@ -243,38 +268,56 @@ lazy val docs = project // new documentation project
 lazy val tofu = project
   .in(file("."))
   .settings(defaultSettings)
+  .settings(libraryDependencies += "org.manatki" %% "derevo-cats-tagless" % Version.derevo)
   .aggregate((coreModules ++ commonModules).map(x => x: ProjectReference): _*)
   .dependsOn(coreModules.map(x => x: ClasspathDep[ProjectReference]): _*)
 
-libraryDependencies += scalatest
+lazy val defaultScalacOptions = scalacOptions := {
+  val tpolecatOptions = scalacOptions.value
 
-lazy val scala213Options = Seq(
-  scalacOptions ++= {
-    minorVersion.value match {
-      case 13 => Seq("-Ymacro-annotations")
-      case 12 =>
-        Seq(
-          "-Yno-adapted-args",                // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
-          "-Ypartial-unification",            // Enable partial unification lype constructor inference
-          "-Ywarn-inaccessible",              // Warn about inaccessible types in method signatures.
-          "-Ywarn-infer-any",                 // Warn when a type argument is inferred to be `Any`.
-          "-Ywarn-nullary-override",          // Warn when non-nullary `def f()' overrides nullary `def f'.
-          "-Ywarn-nullary-unit",              // Warn when nullary methods return Unit.
-          "-Ywarn-numeric-widen",             // Warn when numerics are widened.
-          "-Ywarn-value-discard",             // Warn when non-Unit expression results are unused.
-          "-Xlint:unsound-match",             // Pattern match may not be typesafe.
-          "-Xlint:by-name-right-associative", // By-name parameter of right associative operator.
-          "-Xfuture"                          // Turn on future language features.
-        )
-    }
+  val dropLints = Set(
+    "-Ywarn-dead-code",
+    "-Wdead-code" // ignore dead code paths where `Nothing` is involved
+  )
+
+  val opts = tpolecatOptions.filterNot(dropLints)
+
+  // drop `-Xfatal-warnings` on dev and 2.12 CI
+  if (!sys.env.get("CI").contains("true") || (minorVersion.value == 12))
+    opts.filterNot(Set("-Xfatal-warnings"))
+  else
+    opts
+}
+
+lazy val scala213WarningConfig = {
+  // ignore unused imports that cannot be removed due to cross-compilation
+  val suppressUnusedImports = Seq(
+    "scala/tofu/config/typesafe.scala",
+    "scala-2.13/tofu.syntax/FoldableSuite.scala"
+  ).map { src =>
+    s"src=${scala.util.matching.Regex.quote(src)}&cat=unused-imports:s"
+  }.mkString(",")
+
+  // print warning category for @nowarn("cat=...")
+  val verboseWarnings = "any:wv"
+
+  s"-Wconf:$suppressUnusedImports,$verboseWarnings"
+}
+
+lazy val versionSpecificScalacOptions = scalacOptions ++= {
+  minorVersion.value match {
+    case 13 => Seq(scala213WarningConfig)
+    case 12 => Seq()
   }
+}
+
+lazy val macros = Seq(
+  scalacOptions ++= { if (minorVersion.value == 13) Seq("-Ymacro-annotations") else Seq() },
+  libraryDependencies ++= { if (minorVersion.value == 12) Seq(compilerPlugin(macroParadise)) else Seq() }
 )
 
 lazy val simulacrumOptions = Seq(
-  libraryDependencies ++= Seq(
-    scalaOrganization.value % "scala-reflect" % scalaVersion.value % Provided,
-    simulacrum              % Provided
-  ),
+  libraryDependencies += simulacrum % Provided,
   pomPostProcess := { node =>
     import scala.xml.transform.{RewriteRule, RuleTransformer}
 
@@ -291,49 +334,12 @@ lazy val simulacrumOptions = Seq(
   }
 )
 
-lazy val defaultScalacOptions = scalacOptions ++= Seq(
-  "-deprecation", // Emit warning and location for usages of deprecated APIs.
-  "-encoding",
-  "utf-8",                         // Specify character encoding used by source files.
-  "-explaintypes",                 // Explain type errors in more detail.
-  "-feature",                      // Emit warning and location for usages of features that should be imported explicitly.
-  "-language:existentials",        // Existential types (besides wildcard types) can be written and inferred
-  "-language:experimental.macros", // Allow macro definition (besides implementation and application)
-  "-language:higherKinds",         // Allow higher-kinded types
-  "-language:implicitConversions", // Allow definition of implicit functions called views
-  "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
-
-//  "-Xcheckinit",                   // Wrap field accessors to throw an exception on uninitialized access. (SHOULD BE USED ONLY IN DEV)
-  "-Xlint:adapted-args",           // Warn if an argument list is modified to match the receiver.
-  "-Xlint:delayedinit-select",     // Selecting member of DelayedInit.
-  "-Xlint:doc-detached",           // A Scaladoc comment appears to be detached from its element.
-  "-Xlint:inaccessible",           // Warn about inaccessible types in method signatures.
-  "-Xlint:infer-any",              // Warn when a type argument is inferred to be `Any`.
-  "-Xlint:missing-interpolator",   // A string literal appears to be missing an interpolator id.
-  "-Xlint:nullary-override",       // Warn when non-nullary `def f()' overrides nullary `def f'.
-  "-Xlint:nullary-unit",           // Warn when nullary methods return Unit.
-  "-Xlint:option-implicit",        // Option.apply used implicit view.
-  "-Xlint:package-object-classes", // Class or object defined in package object.
-  "-Xlint:poly-implicit-overload", // Parameterized overloaded implicit methods are not visible as view bounds.
-  "-Xlint:private-shadow",         // A private field (or class parameter) shadows a superclass field.
-  "-Xlint:stars-align",            // Pattern sequence wildcard must align with sequence component.
-  "-Xlint:type-parameter-shadow",  // A local type parameter shadows a type already in scope.
-  "-Xlint:constant",               // Evaluation of a constant arithmetic expression results in an error.
-  "-Ywarn-unused:imports",         // Warn if an import selector is not referenced.
-  "-Ywarn-unused:locals",          // Warn if a local definition is unused.
-  "-Ywarn-unused:params",          // Warn if a value parameter is unused.
-  "-Ywarn-unused:patvars",         // Warn if a variable bound in a pattern is unused.
-  "-Ywarn-unused:privates",        // Warn if a private member is unused.
-  "-Ywarn-unused:implicits",       // Warn if an implicit parameter is unused.
-  "-Ywarn-extra-implicit"          // Warn when more than one implicit parameter section is defined.
-)
-
 lazy val publishSettings = Seq(
   organization := "ru.tinkoff",
   publishVersion := libVersion,
   publishMavenStyle := true,
   description := "Opinionated set of tools for functional programming in Scala",
-  crossScalaVersions := Seq("2.12.10", "2.13.1"),
+  crossScalaVersions := Seq("2.12.12", "2.13.3"),
   publishTo := {
     if (isSnapshot.value) {
       Some(Opts.resolver.sonatypeSnapshots)
@@ -357,10 +363,12 @@ lazy val publishSettings = Seq(
   licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
   homepage := Some(url("https://github.com/TinkoffCreditSystems/tofu")),
   developers := List(
-    Developer("odomontois", "Oleg Nizhnik", "odomontois@gmail.com", url("https://github.com/odomontois")),
+    Developer("catostrophe", "λoλcat", "catostrophe@pm.me", url("https://github.com/catostrophe")),
     Developer("danslapman", "Daniil Smirnov", "danslapman@gmail.com", url("https://github.com/danslapman")),
-    Developer("Phill101", "Nikita Filimonov", "holypics6@gmail.com", url("https://github.com/Phill101"))
+    Developer("odomontois", "Oleg Nizhnik", "odomontois@gmail.com", url("https://github.com/odomontois")),
+    Developer("oskin1", "Ilya Oskin", "ilya.arcadich@gmail.com", url("https://github.com/oskin1")),
   )
 )
+
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("checkfmt", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
