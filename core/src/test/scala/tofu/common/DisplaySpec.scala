@@ -25,7 +25,9 @@ object Foo {
 
 object FooBar extends App {
   lazy val value = Foo(Bar(3), 3.4, List(1, 2, 3))
-  println(value.display)
+  lazy val valueB = Bar(3)
+  println(value.display())
+  println(valueB.display())
 }
 //class DisplaySpec extends AnyFunSpec with Matchers {
 //  describe("derivation") {
