@@ -22,6 +22,7 @@ Of course, you can also specify an exact list of `tofu` modules that you want to
 of `"tofu"`):
 
 * `tofu-core` for core utils
+  * `tofu-core-cats-mtl` for interop between `tofu-core` and [Cats MTL](https://github.com/typelevel/cats-mtl)
 * `tofu-core-higher-kind` for higher kinded utils
 * `tofu-concurrent` for concurrent utils
 * `tofu-config` for config utils
@@ -39,6 +40,7 @@ of `"tofu"`):
   * `tofu-logging-util` for logging util only
   * `tofu-logging-refined` for interop between tofu-logging and [Refined](https://github.com/fthomas/refined) 
   * `tofu-logging-shapeless` for interop between tofu-logging and [Shapeless](https://github.com/milessabin/shapeless) tag
+  * `tofu-logging-log4cats` for interop with [Log4Cats](https://github.com/ChristopherDavenport/log4cats)
 * `tofu-memo` for caching utils
 * `tofu-observable` for `monix.reactive.Observable` utils
 * `tofu-optics-core` for optics core (Optics typeclasses)
@@ -62,6 +64,8 @@ Proud user of ToFu? Feel free to [add your company!](https://github.com/TinkoffC
 <a href="https://konfy.care/"><img width="40%" src="logos/konfy-logo.svg?sanitize=true" /></a>
 
 <a href="https://www.raiffeisen.ru/en/"><img width="40%" src="logos/raiffeisen-logo.svg?sanitize=true" alt="Raiffeisen Bank Russia"/></a>
+
+<a href="https://rms.com/"><img width="40%" src="logos/rms-logo.svg?sanitize=true" alt="Risk Management Solutions" /></a>
 
 # Contributing
 
