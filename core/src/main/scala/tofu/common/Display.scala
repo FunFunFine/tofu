@@ -38,7 +38,7 @@ object Display extends Derivation[Display] with DisplayInstances with DisplaySyn
             displayedParameter <- current.typeclass.displayBuild(precedence, cfg, current.dereference(a))
             tail                = displayedParameter.tail.initLast.map { case (init, last) =>
                                     init.append(last + fieldSeparator)
-                                  }.getOrElse(tail)
+                                  }.getOrElse(displayedParameter.tail)
             newPart             = NEC
                                     .one(s"${current.label}$fieldAssign${displayedParameter.head}")
                                     .appendChain(tail)
