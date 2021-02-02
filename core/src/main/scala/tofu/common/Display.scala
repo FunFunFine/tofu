@@ -10,7 +10,7 @@ trait Display[A] extends Show[A] {
   def displayBuild(precedence: Int, cfg: Display.Config, a: A): Eval[Vector[String]]
 
   def display(a: A, config: Display.Config): String =
-    displayBuild(0, config, a).value.mkString("\n")
+    displayBuild(0, config, a).value.mkString
 
   def show(a: A): String = display(a, Display.Config.default)
 }

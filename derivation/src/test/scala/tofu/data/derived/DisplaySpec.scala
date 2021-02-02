@@ -21,8 +21,8 @@ object Foo {
   insertInstancesHere()
 }
 
-class DisplaySpec extends AnyFunSpec with Matchers {
-  describe("derivation") {
+object DisplaySpec extends App {// extends AnyFunSpec with Matchers {
+  //describe("derivation") {
 
     val bar = Bar(
       3,
@@ -67,11 +67,11 @@ class DisplaySpec extends AnyFunSpec with Matchers {
         "}"
       )
 
-    it("should display complex case classesas string") {
-      foo.display() shouldBe expectedFoo
-    }
-    it("should display as list") {
-      Display[Foo].displayBuild(0, Display.Config.default, foo).value.toString shouldBe expectedList
-    }
-  }
+      //it("should display complex case classes string") {
+      println(foo.display()) //shouldBe expectedFoo
+    //}
+    //it("should display as list") {
+      //Display[Foo].displayBuild(0, Display.Config.default, foo).value.toString// shouldBe expectedList
+    //}
+  //}
 }
