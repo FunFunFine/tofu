@@ -43,7 +43,10 @@ object display extends Derivation[Display] {
         .map(s => s :+ brackets.right)
     }
   }
-  def dispatch[T](ctx: SealedTrait[Typeclass, T]): Display[T] = ???
+  def dispatch[T](ctx: SealedTrait[Typeclass, T]): Display[T] = new Display[T] {
+    override def displayBuild(precedence: Int, cfg: Display.Config, a: T): Eval[Vector[String]] =
+      ctx.dispatch(a)(adtCase => adtCase.typeclass.displayBuild(precedence, cfg,  adtCase.cast(a)))
+  }
 
   def instance[T]: Display[T] = macro Magnolia.gen[T]
 
