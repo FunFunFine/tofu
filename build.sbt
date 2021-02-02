@@ -40,7 +40,7 @@ lazy val higherKindCore = project settings (
 lazy val core = project dependsOn (opticsCore, higherKindCore) settings (
   defaultSettings,
   publishName := "core",
-  libraryDependencies ++= Seq(catsCore, catsEffect, catsTagless, derevo, magnolia),
+  libraryDependencies ++= Seq(catsCore, catsEffect, catsTagless),
 )
 
 lazy val coreCatsMtlInterop = project
