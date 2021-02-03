@@ -8,10 +8,8 @@ import tofu.common.Display
 import tofu.common.Display._
 import tofu.data.derived.display
 
-
 class DisplaySpec extends AnyFunSpec with Matchers {
   describe("derivation") {
-
 
     @derive(display)
     case class Bar(value: Int, another: String)
