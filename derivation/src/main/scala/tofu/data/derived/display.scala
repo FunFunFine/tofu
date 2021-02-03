@@ -28,7 +28,6 @@ object display extends Derivation[Display] {
             )
           )
         ) { case (acc, (current, index)) =>
-
           for {
             alreadyDisplayed            <- acc
             displayedParameterValue     <- current.typeclass.displayBuild(precedence, cfg, current.dereference(a))
@@ -37,9 +36,9 @@ object display extends Derivation[Display] {
                                              case value +: rest if rest.isEmpty  =>
                                                Vector(newline + indent + current.label + fieldAssign + value)
                                              case typeHeader +: innerValueParams =>
-                                               val labeledTypeHeader   =
+                                               val labeledTypeHeader =
                                                  newline + indent + current.label + fieldAssign + typeHeader
-                                               val restOfLines = innerValueParams.map(indentIfOnNewline)
+                                               val restOfLines       = innerValueParams.map(indentIfOnNewline)
                                                labeledTypeHeader +: restOfLines
                                              case _                              => Vector(newline + current.label + fieldAssign)
                                            }

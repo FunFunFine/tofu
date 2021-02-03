@@ -23,7 +23,7 @@ object Foo {
 
 class DisplaySpec extends AnyFunSpec with Matchers {
   describe("derivation") {
-    describe("simple cases"){
+    describe("simple cases") {
       val bar = Bar(
         3,
         "abc"
@@ -45,14 +45,11 @@ class DisplaySpec extends AnyFunSpec with Matchers {
         build shouldBe expectedBarBuild
       }
 
-
-
-
-      it("should display sealed traits"){
+      it("should display sealed traits") {
         @derive(display)
         sealed trait FooBar
         object FooBar {
-          case class Barn(i: Int) extends FooBar
+          case class Barn(i: Int)    extends FooBar
           case class Darn(j: Double) extends FooBar
         }
         val adt: FooBar = FooBar.Barn(3)
@@ -61,9 +58,8 @@ class DisplaySpec extends AnyFunSpec with Matchers {
 
     }
 
-
-    describe("nested case classes"){
-      val foo                              =
+    describe("nested case classes") {
+      val foo =
         Foo(
           bar = Bar(
             3,
@@ -104,12 +100,6 @@ class DisplaySpec extends AnyFunSpec with Matchers {
       }
 
     }
-
-
-
-
-
-
 
   }
 }
