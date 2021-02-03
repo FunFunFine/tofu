@@ -21,57 +21,95 @@ object Foo {
   insertInstancesHere()
 }
 
-object DisplaySpec extends App {// extends AnyFunSpec with Matchers {
-  //describe("derivation") {
-
-    val bar = Bar(
-      3,
-      "abc"
-    )
-
-    val expectedBar =
-      """
-        |Bar{
-        | value = 3,
-        | another = "abc"
-        |}""".stripMargin
-
-    val foo =
-      Foo(
-        bar = Bar(
-          3,
-          "abc"
-        ),
-        field = 3.4,
-        xs = List(1, 2, 3)
+class DisplaySpec extends AnyFunSpec with Matchers {
+  describe("derivation") {
+    describe("simple cases"){
+      val bar = Bar(
+        3,
+        "abc"
       )
 
-    val expectedFoo                =
-      """
-        |Foo{
-        |   bar = Bar{
-        |       value = 3,
-        |       another = "abc"
-        |       },
-        |   field = 3.4,
-        |   xs = List(1,2,3)
-        |}""".stripMargin
-    val expectedList: List[String] =
-      List(
-        "Foo{",
-        "\t\tbar = Bar{",
-        "\t\t\t\tvalue = 3",
-        "\t\t\t\t},",
-        "\t\tfield = \"fld\",",
-        "\t\txs = List(1,2,3)",
-        "}"
-      )
+      val expectedBar =
+        """Bar{
+          |	value = 3,
+          |	another = "abc"
+          |}""".stripMargin
 
-      //it("should display complex case classes string") {
-      println(foo.display()) //shouldBe expectedFoo
-    //}
-    //it("should display as list") {
-      //Display[Foo].displayBuild(0, Display.Config.default, foo).value.toString// shouldBe expectedList
-    //}
-  //}
+      val expectedBarBuild: Vector[String] =
+        Vector("Bar{", "\n\tvalue = 3,", "\n\tanother = \"abc\"", "\n}")
+      it("should display case classes string") {
+        bar.display() shouldBe expectedBar
+      }
+      it("should display case classes build") {
+        val build = Display[Bar].displayBuild(0, Display.Config.default, bar).value
+        build shouldBe expectedBarBuild
+      }
+
+
+
+
+      it("should display sealed traits"){
+        @derive(display)
+        sealed trait FooBar
+        object FooBar {
+          case class Barn(i: Int) extends FooBar
+          case class Darn(j: Double) extends FooBar
+        }
+        val adt: FooBar = FooBar.Barn(3)
+        adt.display() shouldBe "Barn{\n\ti = 3\n}"
+      }
+
+    }
+
+
+    describe("nested case classes"){
+      val foo                              =
+        Foo(
+          bar = Bar(
+            3,
+            "abc"
+          ),
+          field = 3.4,
+          xs = List(1, 2, 3)
+        )
+
+      val expectedFoo                      =
+        """Foo{
+          |	bar = Bar{
+          |		value = 3,
+          |		another = "abc"
+          |	},
+          |	field = 3.4,
+          |	xs = List(1, 2, 3)
+          |}""".stripMargin
+      val expectedFooBuild: Vector[String] =
+        Vector(
+          "Foo{",
+          "\n\tbar = Bar{",
+          "\n\t\tvalue = 3,",
+          "\n\t\tanother = \"abc\"",
+          "\n\t},",
+          "\n\tfield = 3.4,",
+          "\n\txs = List(1, 2, 3)",
+          "\n}"
+        )
+
+      it("should display complex case classes string") {
+        println(foo.display())
+        foo.display() shouldBe expectedFoo
+      }
+      it("should display complex case classes build") {
+        val build = Display[Foo].displayBuild(0, Display.Config.default, foo).value
+        build shouldBe expectedFooBuild
+      }
+
+    }
+
+
+
+
+
+
+
+  }
 }

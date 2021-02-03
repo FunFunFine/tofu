@@ -19,7 +19,7 @@ object Display extends DisplaySyntax with DisplayInstances {
   def apply[A: Display]: Display[A] = implicitly
 
   final case class Config(
-      fieldSeparator: String = ", ",
+      fieldSeparator: String = ",",
       indent: String = "\t",
       showFieldNames: Boolean = true,
       brackets: Brackets = Brackets.curly,
@@ -53,11 +53,7 @@ trait DisplayInstances {
   implicit lazy val stringDisplay: Display[String]       = (precedence: Int, cfg: Display.Config, a: String) =>
     Eval.now(Vector(s""""$a""""))
   implicit lazy val doubleDisplay: Display[Double]       = fromShow(cats.instances.double.catsStdShowForDouble)
-  implicit def listDisplay[A: Display]: Display[List[A]] = new Display[List[A]] {
-    override def displayBuild(precedence: Int, cfg: Config, a: List[A]): Eval[Vector[String]] =
-      Eval.now(
-        s"List${cfg.brackets.left}" +: a.map(Display[A].display(_, cfg)).toVector :+ cfg.brackets.right
-      )
-  }
+  implicit def listDisplay[A: Display]: Display[List[A]] =
+    fromShow(cats.instances.list.catsStdShowForList[A])
 
 }
