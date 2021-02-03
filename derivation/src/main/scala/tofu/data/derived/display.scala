@@ -54,7 +54,7 @@ object display extends Derivation[Display] {
           separator                                 = if (index + 1 < ctx.parameters.size) fieldSeparator else ""
           adaptedLabeledParameterValueWithSeparator = adaptedLabeledParameterValue.last + separator
           separatedLabelValue                       = adaptedLabeledParameterValue.dropRight(1) :+ adaptedLabeledParameterValueWithSeparator
-        } yield alreadyDisplayed :++ separatedLabelValue
+        } yield alreadyDisplayed.appendedAll(separatedLabelValue)
       }
       .map(s => s :+ (newline + brackets.right))
   }
