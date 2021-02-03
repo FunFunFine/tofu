@@ -22,6 +22,19 @@ object display extends Derivation[Display] {
         newline + indent + labeledValue.drop(newline.length)
       else labeledValue
 
+    def adaptDisplayedParameter(label: String, displayedParameterValue: Vector[String]): Vector[String] = {
+      displayedParameterValue match {
+        case value +: rest if rest.isEmpty  =>
+          Vector(newline + indent + label + value)
+        case typeHeader +: innerValueParams =>
+          val labeledTypeHeader =
+            newline + indent + label + typeHeader
+          val restOfLines       = innerValueParams.map(indentIfOnNewline)
+          labeledTypeHeader +: restOfLines
+        case _                              => Vector(newline + indent + label)
+      }
+    }
+
     val shortName: String = ctx.typeName.short
 
     ctx.parameters.zipWithIndex
@@ -33,21 +46,11 @@ object display extends Derivation[Display] {
         )
       ) { case (acc, (current, index)) =>
         for {
-          alreadyDisplayed            <- acc
-          label                        = if (cfg.showFieldLabels) current.label + fieldAssign else ""
-          displayedParameterValue     <- current.typeclass.displayBuild(precedence, cfg, current.dereference(a))
-          //this has at least one element by construction
-          adaptedLabeledParameterValue = displayedParameterValue match {
-                                           case value +: rest if rest.isEmpty  =>
-                                             Vector(newline + indent + label + value)
-                                           case typeHeader +: innerValueParams =>
-                                             val labeledTypeHeader =
-                                               newline + indent + label + typeHeader
-                                             val restOfLines       = innerValueParams.map(indentIfOnNewline)
-                                             labeledTypeHeader +: restOfLines
-                                           case _                              => Vector(newline + indent + label)
-                                         }
-
+          alreadyDisplayed                         <- acc
+          label                                     = if (cfg.showFieldLabels) current.label + fieldAssign else ""
+          displayedParameterValue                  <- current.typeclass.displayBuild(precedence, cfg, current.dereference(a))
+          //this value has at least one element in it by construction, but we avoid using NEVector here due to performance and simplicity
+          adaptedLabeledParameterValue              = adaptDisplayedParameter(label, displayedParameterValue)
           separator                                 = if (index + 1 < ctx.parameters.size) fieldSeparator else ""
           adaptedLabeledParameterValueWithSeparator = adaptedLabeledParameterValue.last + separator
           separatedLabelValue                       = adaptedLabeledParameterValue.dropRight(1) :+ adaptedLabeledParameterValueWithSeparator
