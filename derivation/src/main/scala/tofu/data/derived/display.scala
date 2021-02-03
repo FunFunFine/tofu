@@ -40,7 +40,7 @@ object display extends Derivation[Display] {
                                                  newline + indent + current.label + fieldAssign + typeHeader
                                                val restOfLines       = innerValueParams.map(indentIfOnNewline)
                                                labeledTypeHeader +: restOfLines
-                                             case _                              => Vector(newline + current.label + fieldAssign)
+                                             case _                              => Vector(newline + indent + current.label + fieldAssign)
                                            }
 
             separator                                 = if (index + 1 < ctx.parameters.size) fieldSeparator else ""
