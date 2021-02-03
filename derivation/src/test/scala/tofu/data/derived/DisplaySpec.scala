@@ -37,14 +37,25 @@ class DisplaySpec extends AnyFunSpec with Matchers {
           |	another = "abc"
           |}""".stripMargin
 
+      val expectedBarNoLabels =
+        """Bar{
+          |	3,
+          |	"abc"
+          |}""".stripMargin
+
       val expectedBarBuild: Vector[String] =
         Vector("Bar{", "\n\tvalue = 3,", "\n\tanother = \"abc\"", "\n}")
+
       it("should display case classes string") {
         bar.display() shouldBe expectedBar
       }
       it("should display case classes build") {
         val build = Display[Bar].displayBuild(0, Display.Config.default, bar).value
         build shouldBe expectedBarBuild
+      }
+
+      it("should display case classes string without labels") {
+        bar.display(config = Display.Config.default.copy(showFieldLabels = false)) shouldBe expectedBarNoLabels
       }
 
       it("should display sealed traits") {

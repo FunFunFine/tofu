@@ -1,11 +1,12 @@
 package tofu.common
 import cats.{Eval, Show}
-import tofu.common.Display.Config
 
 /** Configurable and performant conversion to String */
 trait Display[A] extends Show[A] {
 
-  /** Each element of vector represents a new line in resulting string
+  /** Represents value as a collection of parts from which it can be shown.
+    *
+    * @note Newlines are managed solely by instances of [[Display]].
     */
   def displayBuild(precedence: Int, cfg: Display.Config, a: A): Eval[Vector[String]]
 
@@ -18,17 +19,22 @@ trait Display[A] extends Show[A] {
 object Display extends DisplaySyntax with DisplayInstances {
   def apply[A: Display]: Display[A] = implicitly
 
+  /** @param fieldSeparator
+    * @param showFieldLabels
+    * @param brackets
+    * @param fieldAssign
+    * @param newline
+    */
   final case class Config(
       fieldSeparator: String = ",",
       indent: String = "\t",
-      showFieldNames: Boolean = true,
+      showFieldLabels: Boolean = true,
       brackets: Brackets = Brackets.curly,
       fieldAssign: String = " = ",
       newline: String = "\n"
   )
 
   object Config {
-
     val default: Config = Config()
   }
 
@@ -37,6 +43,7 @@ object Display extends DisplaySyntax with DisplayInstances {
   object Brackets {
     val curly: Brackets  = Brackets("{", "}")
     val square: Brackets = Brackets("[", "]")
+    val round: Brackets  = Brackets("(", ")")
   }
 
 }
