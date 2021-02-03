@@ -50,7 +50,7 @@ class DisplaySpec extends AnyFunSpec with Matchers {
         bar.display() shouldBe expectedBar
       }
       it("should display case classes build") {
-        val build = Display[Bar].displayBuild(0, Display.Config.default, bar).value
+        val build = Display[Bar].displayBuild(Display.Config.default, bar).value
         build shouldBe expectedBarBuild
       }
 
@@ -72,7 +72,7 @@ class DisplaySpec extends AnyFunSpec with Matchers {
       it("should display empty display as empty string") {
         case class Emptiness()
         implicit val displayEmptiness: Display[Emptiness] =
-          (_: Int, _: Config, _: Emptiness) => Eval.now(Vector.empty[String])
+          (_: Config, _: Emptiness) => Eval.now(Vector.empty[String])
         @derive(display)
         case class Bjarn(i: Emptiness)
         Bjarn(Emptiness()).display() shouldBe "Bjarn{\n\ti = \n}"
@@ -117,7 +117,7 @@ class DisplaySpec extends AnyFunSpec with Matchers {
         foo.display() shouldBe expectedFoo
       }
       it("should display complex case classes build") {
-        val build = Display[Foo].displayBuild(0, Display.Config.default, foo).value
+        val build = Display[Foo].displayBuild(Display.Config.default, foo).value
         build shouldBe expectedFooBuild
       }
 
@@ -126,7 +126,7 @@ class DisplaySpec extends AnyFunSpec with Matchers {
         case class Nested(a: Int, b: Int, c: Int)
         object Nested {
           implicit val displayEmptiness: Display[Nested] =
-            (_: Int, _: Config, ns: Nested) =>
+            (_: Config, ns: Nested) =>
               Eval.now(Vector("Nested{", s"a = ${ns.a}, ", s"b = ${ns.b}, ", s"c = ${ns.c}", "}"))
         }
         @derive(display)

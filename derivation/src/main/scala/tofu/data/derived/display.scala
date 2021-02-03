@@ -14,7 +14,7 @@ object display extends Derivation[Display] {
 
   private type Typeclass[T] = Display[T]
 
-  def combine[T](ctx: CaseClass[Typeclass, T]): Display[T]    = (precedence: Int, cfg: Display.Config, a: T) => {
+  def combine[T](ctx: CaseClass[Typeclass, T]): Display[T]    = (cfg: Display.Config, a: T) => {
     import cfg.{fieldSeparator, indent, brackets, fieldAssign, newline}
 
     def indentIfOnNewline(labeledValue: String) =
@@ -48,7 +48,7 @@ object display extends Derivation[Display] {
         for {
           alreadyDisplayed                         <- acc
           label                                     = if (cfg.showFieldLabels) current.label + fieldAssign else ""
-          displayedParameterValue                  <- current.typeclass.displayBuild(precedence, cfg, current.dereference(a))
+          displayedParameterValue                  <- current.typeclass.displayBuild(cfg, current.dereference(a))
           //this value has at least one element in it by construction, but we avoid using NEVector here due to performance and simplicity
           adaptedLabeledParameterValue              = adaptDisplayedParameter(label, displayedParameterValue)
           separator                                 = if (index + 1 < ctx.parameters.size) fieldSeparator else ""
@@ -58,8 +58,8 @@ object display extends Derivation[Display] {
       }
       .map(s => s :+ (newline + brackets.right))
   }
-  def dispatch[T](ctx: SealedTrait[Typeclass, T]): Display[T] = (precedence: Int, cfg: Display.Config, a: T) =>
-    ctx.dispatch(a)(adtCase => adtCase.typeclass.displayBuild(precedence, cfg, adtCase.cast(a)))
+  def dispatch[T](ctx: SealedTrait[Typeclass, T]): Display[T] = (cfg: Display.Config, a: T) =>
+    ctx.dispatch(a)(adtCase => adtCase.typeclass.displayBuild(cfg, adtCase.cast(a)))
 
   def instance[T]: Display[T] = macro Magnolia.gen[T]
 

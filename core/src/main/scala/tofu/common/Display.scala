@@ -8,10 +8,10 @@ trait Display[A] extends Show[A] {
     *
     * @note Newlines are managed solely by instances of [[Display]].
     */
-  def displayBuild(precedence: Int, cfg: Display.Config, a: A): Eval[Vector[String]]
+  def displayBuild(cfg: Display.Config, a: A): Eval[Vector[String]]
 
   def display(a: A, config: Display.Config): String =
-    displayBuild(0, config, a).value.mkString
+    displayBuild(config, a).value.mkString
 
   def show(a: A): String = display(a, Display.Config.default)
 }
@@ -55,12 +55,18 @@ trait DisplaySyntax {
 
 }
 trait DisplayInstances {
-  def fromShow[A: Show]: Display[A]                      = (precedence: Int, cfg: Display.Config, a: A) => Eval.now(Vector(Show[A].show(a)))
-  implicit lazy val intDisplay: Display[Int]             = fromShow(cats.instances.int.catsStdShowForInt)
-  implicit lazy val stringDisplay: Display[String]       = (precedence: Int, cfg: Display.Config, a: String) =>
-    Eval.now(Vector(s""""$a""""))
-  implicit lazy val doubleDisplay: Display[Double]       = fromShow(cats.instances.double.catsStdShowForDouble)
-  implicit def listDisplay[A: Display]: Display[List[A]] =
+  def fromShow[A: Show]: Display[A]                       = (cfg: Display.Config, a: A) => Eval.now(Vector(Show[A].show(a)))
+  implicit lazy val intDisplay: Display[Int]              = fromShow(cats.instances.int.catsStdShowForInt)
+  implicit lazy val stringDisplay: Display[String]        = (cfg: Display.Config, a: String) =>
+    Eval.now(Vector("\"" + a + "\""))
+  implicit lazy val doubleDisplay: Display[Double]        = fromShow(cats.instances.double.catsStdShowForDouble)
+  implicit lazy val longDisplay: Display[Long]            = fromShow(cats.instances.long.catsStdShowForLong)
+  implicit lazy val floatDisplay: Display[Float]          = fromShow(cats.instances.float.catsStdShowForFloat)
+  implicit def listDisplay[A: Display]: Display[List[A]]  =
     fromShow(cats.instances.list.catsStdShowForList[A])
+  implicit def setDisplay[A: Display]: Display[Option[A]] =
+    fromShow(cats.instances.option.catsStdShowForOption[A])
+  implicit def optionDisplay[A: Display]: Display[Set[A]] =
+    fromShow(cats.instances.set.catsStdShowForSet[A])
 
 }
